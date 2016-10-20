@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="text/babel" >
+    "use strict";
+    
+    let socket; //socket
+    //canvas vars
+    let canvas;
+    let ctx;
+    //holds users
+    let users = {};
+    //keep track of what keys are down
+    let keyDown = [];
+    //last key released
+    let keyPrev = 0;
+    let dt = 1/60.0; //delta time
+    
+    //CONSTANTS
+    const name = new Date().getTime();//user id number
+    const nSpeed = 30; //normal player speed
+    const tagSpeed = 40; //it player's speed <= not yet implemented
+    
+    const KEYBOARD = {
+      'KEY_LEFT':37,
+      'KEY_UP':38,
+      'KEY_RIGHT':39,
+      'KEY_DOWN':40,
+      'KEY_A':65,
+      'KEY_S':83,
+      'KEY_W':87,
+      'KEY_D':68
+    };
+
+    //sets size of canvas equal to size of user's screen
+    const setCanvasSize = () => {
+      
+    }
+    
+    //decides if two objects are colliding
+    const collides = (a,b) => {
+      let dx = a.x - b.y;
+      let dy = a.y - b.y;
+      let distance = Math.sqrt(dx*dx + dy*dy);
+      
+      return (distance < (a.radius + b.radius))
+    }//ends: collides
+    
+    //player movement
+    const move = () => {
+      /**keeps the player on the screen**/
+      let dx = player.x - back.width/2;
+      let dy = player.y - back.height/2;
+      let dFromCenter = Math.sqrt(dx*dx + dy*dy);
+      
+      if(distance < (a.radius + b.radius)) {
+        /**Keyboard controls**/
+        if(keyDown[KEYBOARD.KEY_LEFT] || keyDown[KEYBOARD.KEY_A){
+          player.x -= player.nSpeed*dt;
+        }
+        if(keyDown[KEYBOARD.KEY_RIGHT] || keyDown[KEYBOARD.KEY_D){
+          player.x += player.nSpeed*dt;
+        }
+        if(keyDown[KEYBOARD.KEY_UP] || keyDown[KEYBOARD.KEY_W]){
+          player.y -= player.nSpeed*dt;
+        }
+        if(keyDown[KEYBOARD.KEY_DOWN] || keyDown[KEYBOARD.KEY_S){
+          player.y += player.nSpeed*dt;
+        }
+      }
+    }, //ends: move
+    
+    //holds socket event listeners
+    const setupSocket = () => {
+      socket.on('otherMove', (data) => {
+        console.log('movements received');
+        ctx.clearRect(0, 0, 500, 500);
+        let users = data.users; //get list of users
+      });
+    };//ends: setupSocket
+    
+    const init = () => {
+      socket = io.connect();//connect the socket
+      //get and set canvas
+        canvas = document.querySelector("#myCanvas");
+        ctx = canvas.getContext("2d");
+        setCanvasSize();
+      
+      //event listeners
+      setupSocket();//socket events
+      window.addEventListener('keydown',function(e){ //keypresses
+        app.keyDown[e.keyCode] = true;
+      });
+      window.addEventListener('keyup',function(e){ //keyreleasses
+        app.keyDown[e.keyCode] = false;
+        app.keyPrev = e.keyCode;
+      });
+    };//ends: init
+    
+    //when the page loads
+    window.onload = init;
+  </script>
+</head>
+<body>
+  <canvas id="myCanvas" style="border:1px solid #000000;">
+    Get a real browser!
+  </canvas>
+</body>
+</html>

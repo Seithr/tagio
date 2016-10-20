@@ -21,17 +21,22 @@ console.log(`Listening on 127.0.0.1: ${port}`);
 const io = socketio(app);
 
 // holds the list of users
-const users = [];
+const users = {};
 
 // when a player makes a move
 const onMove = (sock) => {
   const socket = sock;
 
   // just take data in and send it to everyone
-  socket.on('click', (data) => {
+  socket.on('move', (data) => {
     console.log('someone moved');
 
-    io.sockets.in('room1').emit('otherMove', { });
+    users[data.name].x = data.x;
+    users[data.name].y = data.y;
+    console.dir(data);
+    console.dir(users);
+
+    io.sockets.in('room1').emit('otherMove', users);
   });
 };
 
@@ -39,8 +44,12 @@ const onMove = (sock) => {
 const onJoin = (sock) => {
   const socket = sock;
 
-  socket.on('newPlayer', (data) => {
+  socket.on('join', (data) => {
     console.log('new player joined');
+    users[data.name] = data;
+
+    socket.join('room1');
+    io.sockets.in('room1').emit('newPlayer', users);
   });
 };
 
@@ -61,7 +70,6 @@ io.sockets.on('connection', (socket) => {
   onDisconnect(socket);
   onMove(socket);
   onJoin(socket);
-  socket.join('room1');
 });
 
 console.log('Websocket server started');

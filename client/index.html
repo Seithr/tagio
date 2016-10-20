@@ -10,19 +10,21 @@
     //canvas vars
     let canvas;
     let ctx;
+    let img;
     //holds users
     let users = {};
     //keep track of what keys are down
     let keyDown = [];
     //last key released
     let keyPrev = 0;
-    let dt = 1/60.0; //delta time
     
     //CONSTANTS
     const name = new Date().getTime();//user id number
-    const nSpeed = 1; //normal player speed
-    const tagSpeed = 1.5; //it player's speed <= not yet implemented
+    const nSpeed = 1/60.0; //normal player speed
+    const tagSpeed = 2/60.0; //it player's speed <= not yet implemented
+    const r = 10; //all players are the same size
     
+    //valid keystrokes
     const KEYBOARD = {
       'KEY_LEFT':37,
       'KEY_UP':38,
@@ -44,6 +46,25 @@
       canvas.height = height;
     };
     
+    //draws the field and all players
+    const draw = () => {
+      //draw background
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#0000FF';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img,0,0);
+      
+      //draws players
+      ctx.fillStyle = '#FF0000';
+      for (let key in users) {
+        if (users.hasOwnProperty(key)) {
+          ctx.beginPath();
+          ctx.arc(key.x,key.y,r,0,2*Math.PI);
+          ctx.fill();
+        }
+      }
+    };
+    
     //decides if two objects are colliding
     const collides = (a,b) => {
       let dx = a.x - b.y;
@@ -56,34 +77,44 @@
     //player movement
     const move = () => {
       //keeps the player on the screen
-      let dx = users[name].x;// - back.width/2;
-      let dy = users[name].y;// - back.height/2;
+      let dx = users[name].x - 250;
+      let dy = users[name].y - 250;
       let dFromCenter = Math.sqrt(dx*dx + dy*dy);
       
       //movement is only allowed if the player is within the map
-      if(dFromCenter < (a.radius + b.radius)){
+      if(dFromCenter < (r + 250 - r)){
         //Keyboard controls
         if(keyDown[KEYBOARD.KEY_LEFT] || keyDown[KEYBOARD.KEY_A]){
-          users[name].x -= users[name].nSpeed;
+          users[name].x -= nSpeed;
         }
         if(keyDown[KEYBOARD.KEY_RIGHT] || keyDown[KEYBOARD.KEY_D]){
-          users[name].x += users[name].nSpeed;
+          users[name].x += nSpeed;
         }
         if(keyDown[KEYBOARD.KEY_UP] || keyDown[KEYBOARD.KEY_W]){
-          users[name].y -= users[name].nSpeed;
+          users[name].y -= nSpeed;
         }
         if(keyDown[KEYBOARD.KEY_DOWN] || keyDown[KEYBOARD.KEY_S]){
-          users[name].y += users[name].nSpeed;
+          users[name].y += nSpeed;
         }
       }
+      
+      console.dir(users);
+      socket.emit('move',{ name: name, x: users[name].x, y: users[name].y});
     }; //ends: move
     
     //holds socket event listeners
     const setupSocket = () => {
+      //when a movement is received
       socket.on('otherMove', (data) => {
         console.log('movements received');
-        ctx.clearRect(0, 0, 500, 500);
-        let users = data.users; //get list of users
+        users = data;
+        draw();
+      });
+      
+      socket.on('newPlayer', (data) => {
+        console.log('player received');
+        users = data;
+        draw();
       });
     };//ends: setupSocket
     
@@ -91,25 +122,36 @@
       socket = io.connect();//connect the socket
       //get and set canvas
         canvas = document.querySelector("#myCanvas");
-        setCanvasSize();
         ctx = canvas.getContext("2d");
+        setCanvasSize();
+      
+      //load background image
+      img = new Image();
+      img.src = '../client/background_v1.png';
+      img.onload = function(){
+        ctx.drawImage(img,0,0);
+        console.log("image loaded");
+      };
       
       //event listeners
       setupSocket();//socket events
       window.addEventListener('keydown',function(e){ //keypresses
         keyDown[e.keyCode] = true;
+        move();
       });
       window.addEventListener('keyup',function(e){ //keyreleasses
         keyDown[e.keyCode] = false;
         keyPrev = e.keyCode;
       });
       
-      ctx.fillStyle = 'blue';
-      ctx.fillRect(0,0,canvas.width,canvas.height);
+      //send my data to the server
+      socket.emit('join', { name: name, x: 50.1, y: 50.1 });
     };//ends: init
     
     //when the page loads
     window.onload = init;
+    
+    
   </script>
 </head>
 <body style="margin:0px;">

@@ -36,9 +36,10 @@
 
     //sets size of canvas equal to size of user's screen
     const setCanvasSize = () => {
-      let width = window.innerWidth;
-      let height = window.innerHeight;
+      let width = document.body.clientWidth;
+      let height = window.innerHeight - 23;
       
+      console.log(canvas.x);
       canvas.width = width;
       canvas.height = height;
     };
@@ -102,14 +103,17 @@
         keyDown[e.keyCode] = false;
         keyPrev = e.keyCode;
       });
+      
+      ctx.fillStyle = 'blue';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
     };//ends: init
     
     //when the page loads
     window.onload = init;
   </script>
 </head>
-<body>
-  <canvas id="myCanvas" style="border:1px solid #000000;">
+<body style="margin:0px;">
+  <canvas id="myCanvas">
     Get a real browser!
   </canvas>
 </body>

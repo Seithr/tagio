@@ -21,7 +21,7 @@ console.log(`Listening on 127.0.0.1: ${port}`);
 const io = socketio(app);
 
 // holds the list of users
-let users = [];
+const users = [];
 
 // when a player makes a move
 const onMove = (sock) => {
@@ -31,7 +31,7 @@ const onMove = (sock) => {
   socket.on('click', (data) => {
     console.log('someone moved');
 
-    io.sockets.in('room1').emit('otherMove', {  });
+    io.sockets.in('room1').emit('otherMove', { });
   });
 };
 

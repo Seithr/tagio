@@ -20,8 +20,8 @@
     
     //CONSTANTS
     const name = new Date().getTime();//user id number
-    const nSpeed = 30; //normal player speed
-    const tagSpeed = 40; //it player's speed <= not yet implemented
+    const nSpeed = 1; //normal player speed
+    const tagSpeed = 1.5; //it player's speed <= not yet implemented
     
     const KEYBOARD = {
       'KEY_LEFT':37,
@@ -36,8 +36,12 @@
 
     //sets size of canvas equal to size of user's screen
     const setCanvasSize = () => {
+      let width = window.innerWidth;
+      let height = window.innerHeight;
       
-    }
+      canvas.width = width;
+      canvas.height = height;
+    };
     
     //decides if two objects are colliding
     const collides = (a,b) => {
@@ -45,32 +49,33 @@
       let dy = a.y - b.y;
       let distance = Math.sqrt(dx*dx + dy*dy);
       
-      return (distance < (a.radius + b.radius))
-    }//ends: collides
+      return (distance < (a.radius + b.radius));
+    };//ends: collides
     
     //player movement
     const move = () => {
-      /**keeps the player on the screen**/
-      let dx = player.x - back.width/2;
-      let dy = player.y - back.height/2;
+      //keeps the player on the screen
+      let dx = users[name].x;// - back.width/2;
+      let dy = users[name].y;// - back.height/2;
       let dFromCenter = Math.sqrt(dx*dx + dy*dy);
       
-      if(distance < (a.radius + b.radius)) {
-        /**Keyboard controls**/
-        if(keyDown[KEYBOARD.KEY_LEFT] || keyDown[KEYBOARD.KEY_A){
-          player.x -= player.nSpeed*dt;
+      //movement is only allowed if the player is within the map
+      if(dFromCenter < (a.radius + b.radius)){
+        //Keyboard controls
+        if(keyDown[KEYBOARD.KEY_LEFT] || keyDown[KEYBOARD.KEY_A]){
+          users[name].x -= users[name].nSpeed;
         }
-        if(keyDown[KEYBOARD.KEY_RIGHT] || keyDown[KEYBOARD.KEY_D){
-          player.x += player.nSpeed*dt;
+        if(keyDown[KEYBOARD.KEY_RIGHT] || keyDown[KEYBOARD.KEY_D]){
+          users[name].x += users[name].nSpeed;
         }
         if(keyDown[KEYBOARD.KEY_UP] || keyDown[KEYBOARD.KEY_W]){
-          player.y -= player.nSpeed*dt;
+          users[name].y -= users[name].nSpeed;
         }
-        if(keyDown[KEYBOARD.KEY_DOWN] || keyDown[KEYBOARD.KEY_S){
-          player.y += player.nSpeed*dt;
+        if(keyDown[KEYBOARD.KEY_DOWN] || keyDown[KEYBOARD.KEY_S]){
+          users[name].y += users[name].nSpeed;
         }
       }
-    }, //ends: move
+    }; //ends: move
     
     //holds socket event listeners
     const setupSocket = () => {
@@ -85,17 +90,17 @@
       socket = io.connect();//connect the socket
       //get and set canvas
         canvas = document.querySelector("#myCanvas");
-        ctx = canvas.getContext("2d");
         setCanvasSize();
+        ctx = canvas.getContext("2d");
       
       //event listeners
       setupSocket();//socket events
       window.addEventListener('keydown',function(e){ //keypresses
-        app.keyDown[e.keyCode] = true;
+        keyDown[e.keyCode] = true;
       });
       window.addEventListener('keyup',function(e){ //keyreleasses
-        app.keyDown[e.keyCode] = false;
-        app.keyPrev = e.keyCode;
+        keyDown[e.keyCode] = false;
+        keyPrev = e.keyCode;
       });
     };//ends: init
     

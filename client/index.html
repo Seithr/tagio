@@ -68,7 +68,7 @@
       }
       
       //draws instructions as long as no more than 30 seconds have passed
-      let cTime = Date().getTime();
+      let cTime = new Date().getTime();
       if((cTime - enterTime) < 30000) {
         ctx.fillStyle = "#000000";
         ctx.font = "30px Verdana";

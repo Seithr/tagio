@@ -1,16 +1,32 @@
 const http = require('http');
+const path = require('path');
 const fs = require('fs');
 const socketio = require('socket.io');
 
 const port = process.env.PORT || process.env.NODE_PORT || 3000;
 
-// read client html file into memory
-const index = fs.readFileSync(`${__dirname}/../client/index.html`);
+// filenames to load into memory
+const fileNames = ['/index.html', '/background_v1.png'];
+// object to store files in mem by key
+const cachedFiles = {};
+
+// load each client file into memory
+for (let i = 0; i < fileNames.length; i += 1) {
+  const currentName = fileNames[i]; // current file name
+
+  const resolvedPath = path.resolve(`${__dirname}/../client/${fileNames[i]}`);
+  cachedFiles[currentName] = fs.readFileSync(resolvedPath);
+}
 
 const onRequest = (request, response) => {
-  response.writeHead(200, { 'Content-Type': 'text/html' });
-  response.write(index);
-  response.end();
+  // Check if requested filename is in fileNames, If so, send it back.
+  if (fileNames.indexOf(request.url) > -1) {
+    response.writeHead(200); // 200 status okay
+    response.end(cachedFiles[request.url]); // return the requested file
+  } else {
+    response.writeHead(200); // 200 status okay
+    response.end(cachedFiles['/index.html']);
+  }
 };
 
 // listen on specified port
@@ -31,12 +47,15 @@ const onMove = (sock) => {
   socket.on('move', (data) => {
     console.log('someone moved');
 
-    users[data.name].x = data.x;
-    users[data.name].y = data.y;
-    console.dir(data);
-    console.dir(users);
+    // change only if the move is new
+    if (users[data.name].moveTime < data.moveTime) {
+      users[data.name].x = data.x;
+      users[data.name].y = data.y;
+      console.dir(data);
+      console.dir(users);
 
-    io.sockets.in('room1').emit('otherMove', users);
+      io.sockets.in('room1').emit('otherMove', users);
+    }
   });
 };
 

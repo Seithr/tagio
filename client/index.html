@@ -17,6 +17,8 @@
     let keyDown = [];
     //last key released
     let keyPrev = 0;
+    //time opened
+    let enterTime = new Date().getTime();
     
     //CONSTANTS
     const name = new Date().getTime();//user id number
@@ -52,16 +54,25 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = '#0000FF';
       ctx.fillRect(0,0,canvas.width,canvas.height);
-      ctx.drawImage(img,0,0);
+      //ctx.drawImage(img,0,0);
       
       //draws players
       ctx.fillStyle = '#FF0000';
+	  
       for (let key in users) {
         if (users.hasOwnProperty(key)) {
           ctx.beginPath();
-          ctx.arc(key.x,key.y,r,0,2*Math.PI);
+          ctx.arc(users[key].x,users[key].y,r,0,2*Math.PI);
           ctx.fill();
         }
+      }
+      
+      //draws instructions as long as no more than 30 seconds have passed
+      let cTime = Date().getTime();
+      if((cTime - enterTime) < 30000) {
+        ctx.fillStyle = "#000000";
+        ctx.font = "30px Verdana";
+        ctx.fillText("Use WASD or arrow keys to move.",20,20);
       }
     };
     
@@ -76,6 +87,8 @@
     
     //player movement
     const move = () => {
+      //the time of the movement
+      let time = new Date().getTime();
       //keeps the player on the screen
       let dx = users[name].x - 250;
       let dy = users[name].y - 250;
@@ -99,7 +112,7 @@
       }
       
       console.dir(users);
-      socket.emit('move',{ name: name, x: users[name].x, y: users[name].y});
+      socket.emit('move',{ name: name, x: users[name].x, y: users[name].y, moveTime: time});
     }; //ends: move
     
     //holds socket event listeners
@@ -119,6 +132,7 @@
     };//ends: setupSocket
     
     const init = () => {
+      let time = new Date().getTime();
       socket = io.connect();//connect the socket
       //get and set canvas
         canvas = document.querySelector("#myCanvas");
@@ -145,7 +159,7 @@
       });
       
       //send my data to the server
-      socket.emit('join', { name: name, x: 50.1, y: 50.1 });
+      socket.emit('join', { name: name, x: 50.1, y: 50.1, moveTime: time });
     };//ends: init
     
     //when the page loads

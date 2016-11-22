@@ -22,8 +22,8 @@
     
     //CONSTANTS
     const name = new Date().getTime();//user id number
-    const nSpeed = 1/60.0; //normal player speed
-    const tagSpeed = 2/60.0; //it player's speed <= not yet implemented
+    const nSpeed = 0.5; //normal player speed
+    const tagSpeed = 1; //it player's speed <= not yet implemented
     const r = 10; //all players are the same size
     
     //valid keystrokes
@@ -43,7 +43,6 @@
       let width = document.body.clientWidth;
       let height = window.innerHeight - 23;
       
-      console.log(canvas.x);
       canvas.width = width;
       canvas.height = height;
     };
@@ -54,7 +53,7 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = '#0000FF';
       ctx.fillRect(0,0,canvas.width,canvas.height);
-      //ctx.drawImage(img,0,0);
+      ctx.drawImage(img,0,0);
       
       //draws players
       ctx.fillStyle = '#FF0000';
@@ -69,7 +68,7 @@
       
       //draws instructions as long as no more than 30 seconds have passed
       let cTime = new Date().getTime();
-      if((cTime - enterTime) < 30000) {
+      if((cTime - enterTime) < 10000) {
         ctx.fillStyle = "#000000";
         ctx.font = "30px Verdana";
         ctx.fillText("Use WASD or arrow keys to move.",20,20);
@@ -89,30 +88,36 @@
     const move = () => {
       //the time of the movement
       let time = new Date().getTime();
-      //keeps the player on the screen
-      let dx = users[name].x - 250;
-      let dy = users[name].y - 250;
-      let dFromCenter = Math.sqrt(dx*dx + dy*dy);
+      //temp pos
+      let x = users[name].x;
+      let y = users[name].y;
       
-      //movement is only allowed if the player is within the map
-      if(dFromCenter < (r + 250 - r)){
-        //Keyboard controls
-        if(keyDown[KEYBOARD.KEY_LEFT] || keyDown[KEYBOARD.KEY_A]){
-          users[name].x -= nSpeed;
-        }
-        if(keyDown[KEYBOARD.KEY_RIGHT] || keyDown[KEYBOARD.KEY_D]){
-          users[name].x += nSpeed;
-        }
-        if(keyDown[KEYBOARD.KEY_UP] || keyDown[KEYBOARD.KEY_W]){
-          users[name].y -= nSpeed;
-        }
-        if(keyDown[KEYBOARD.KEY_DOWN] || keyDown[KEYBOARD.KEY_S]){
-          users[name].y += nSpeed;
-        }
+      //Keyboard controls
+      if(keyDown[KEYBOARD.KEY_LEFT] || keyDown[KEYBOARD.KEY_A]){
+        x -= nSpeed;
+      }
+      if(keyDown[KEYBOARD.KEY_RIGHT] || keyDown[KEYBOARD.KEY_D]){
+        x += nSpeed;
+      }
+      if(keyDown[KEYBOARD.KEY_UP] || keyDown[KEYBOARD.KEY_W]){
+        y -= nSpeed;
+      }
+      if(keyDown[KEYBOARD.KEY_DOWN] || keyDown[KEYBOARD.KEY_S]){
+        y += nSpeed;
       }
       
-      console.dir(users);
-      socket.emit('move',{ name: name, x: users[name].x, y: users[name].y, moveTime: time});
+      //check distance from center of map
+      let dx = x - 250;
+      let dy = y - 250;
+      let dFromCenter = Math.sqrt(dx*dx + dy*dy);
+      //movement only updates if the player is within the map
+      if(dFromCenter < (250 - r)){
+        users[name].x = x;
+        users[name].y = y
+        
+        //console.dir(users);
+        socket.emit('move',{ name: name, x: users[name].x, y: users[name].y, moveTime: time});
+      }
     }; //ends: move
     
     //holds socket event listeners
@@ -141,7 +146,7 @@
       
       //load background image
       img = new Image();
-      img.src = '../client/background_v1.png';
+      img.src = '/background_v1.png';
       img.onload = function(){
         ctx.drawImage(img,0,0);
         console.log("image loaded");
@@ -159,7 +164,7 @@
       });
       
       //send my data to the server
-      socket.emit('join', { name: name, x: 50.1, y: 50.1, moveTime: time });
+      socket.emit('join', { name: name, x: 100.0, y: 100.0, moveTime: time });
     };//ends: init
     
     //when the page loads

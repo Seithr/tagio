@@ -51,8 +51,8 @@ const onMove = (sock) => {
     if (users[data.name].moveTime < data.moveTime) {
       users[data.name].x = data.x;
       users[data.name].y = data.y;
-      console.dir(data);
-      console.dir(users);
+      //console.dir(data);
+      //console.dir(users);
 
       io.sockets.in('room1').emit('otherMove', users);
     }

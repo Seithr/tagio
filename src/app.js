@@ -73,8 +73,8 @@ const io = socketio(server);
 const users = {};
 // total users are playing
 let playCount = 0;
-const nSpeed = 0.6; // normal player speed
-const tagSpeed = 1; // it player's speed
+const nSpeed = 1.0; // normal player speed
+const tagSpeed = 1.3; // it player's speed
 
 // pick someone to be it
 const setIt = () => {

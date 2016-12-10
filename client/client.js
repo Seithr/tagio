@@ -1,77 +1,122 @@
 "use strict";
   
 let socket; //socket
-//canvas vars
-let canvas;
-let ctx;
-let img;
-//holds users
-let users = {};
-//keep track of what keys are down
-let keyDown = [];
-//last key released
-let keyPrev = 0;
-//time opened
-let enterTime = new Date().getTime();
+let hCanvas, hctx, canvas, ctx, img;//canvas vars
+let users = {};//holds users
+let keyDown = [];//keep track of what keys are down
+let keyPrev = 0;//last key released
+let enterTime = new Date().getTime();//time opened
+let itCTime = 0;//time since last forced it change
 
 //CONSTANTS
 const name = new Date().getTime();//user id number
-const nSpeed = 0.5; //normal player speed
-const tagSpeed = 1; //it player's speed <= not yet implemented
-const r = 10; //all players are the same size
+const r = 15; //all players are the same size
 
 //valid keystrokes
 const KEYBOARD = {
-  'KEY_A':65,
-  'KEY_S':83,
-  'KEY_W':87,
-  'KEY_D':68
-};
-
-//sets size of canvas equal to size of user's screen
-const setCanvasSize = () => {
-  let width = document.body.clientWidth;
-  let height = window.innerHeight - 23;
-  
-  canvas.width = width;
-  canvas.height = height;
+  'KEY_A':'KeyA',
+  'KEY_S':'KeyS',
+  'KEY_W':'KeyW',
+  'KEY_D':'KeyD'
 };
 
 //draws the field and all players
 const draw = () => {
-  //draw background
+  //get the size of the user's window
+  let width = document.body.clientWidth;
+  let height = window.innerHeight - 23;
+  
+  //clear both canvases
+  hctx.clearRect(0, 0, hCanvas.width, hCanvas.height);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#0000FF';
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-  ctx.drawImage(img,0,0);
+  
+  //set the size of the visible canvas
+  canvas.width = width;
+  canvas.height = height
+  
+  //draw background
+  hctx.fillStyle = '#0000FF';
+  hctx.fillRect(0,0,hCanvas.width,hCanvas.height);
+  hctx.drawImage(img,0,0);
   
   //draws players
-  ctx.fillStyle = '#FF0000';
-
-  for (let key in users) {
-    if (users.hasOwnProperty(key)) {
-      ctx.beginPath();
-      ctx.arc(users[key].x,users[key].y,r,0,2*Math.PI);
-      ctx.fill();
-    }
+  hctx.fillStyle = '#FF0000';
+  const key = Object.keys(users);
+  for (let i = 0; i < key.length; i += 1) {
+    if(users[key[i]].it === true) { hctx.fillStyle = "red" }
+    else { hctx.fillStyle = users[key[i]].color; }
+    hctx.beginPath();
+    hctx.arc(users[key[i]].x,users[key[i]].y,r,0,2*Math.PI);
+    hctx.fill();
   }
   
-  //draws instructions as long as no more than 30 seconds have passed
+  //get player position
+  let x = users[name].x;
+  let y = users[name].y;
+  
+  //get position for clipping
+  let cameraX = x - 150;
+  let cameraY = y - 115;
+  
+  //draw the hidden canvas on the visible canvas scaled to correct size
+  ctx.drawImage(hCanvas,cameraX,cameraY,300,230,0,0,width,height);
+  
+  //check for tagged
+  tagCheck();
+  
+  //draws instructions as long as no more than 20 seconds have passed
   let cTime = new Date().getTime();
-  if((cTime - enterTime) < 10000) {
+  if((cTime - enterTime) < 20000) {
     ctx.fillStyle = "#000000";
     ctx.font = "30px Verdana";
     ctx.fillText("Use WASD to move.",100,100);
   }
-};
+  
+  //tells the player they are it (lasts 3 seconds)
+  if(users[name].it == true){
+    console.log('ur it');
+    if((cTime - users[name].timeTagged) < 3000) {
+      ctx.fillStyle = "red";
+      ctx.font = "100px Verdana";
+      ctx.fillText("Tag! You're IT!",200,200);
+    }
+  }
+  
+  //informs players the seeker has quit
+  if(cTime - itCTime < 10000){
+    ctx.fillStyle = "red";
+    ctx.font = "50px Verdana";
+    ctx.fillText("The previous It player has left. New It player has been chosen.",100,100);
+  }
+};//ends: draw
+
+//checks if player has been tagged
+const tagCheck = () => {
+  let cTime = new Date().getTime();
+  const key = Object.keys(users);
+  for (let i = 0; i < key.length; i += 1) {
+    //collisions only matter if other person is it
+    if(users[key[i]].it === true && users[key[i]].name != name) {
+      //if player is colliding with seeker and seeker can tag
+      console.dir(users[key[i]]);
+      console.dir(users[name]);
+      console.log(collides(users[name],users[key[i]]));
+      if(collides(users[name],users[key[i]]) === true){
+        if(cTime - users[key[i]].timeTagged > 3000) {
+          socket.emit('tag',{ tag: name, untag: users[key[i]].name});
+        }
+      }
+    }
+  }
+};//ends: tagCheck
 
 //decides if two objects are colliding
 const collides = (a,b) => {
-  let dx = a.x - b.y;
+  let dx = a.x - b.x;
   let dy = a.y - b.y;
   let distance = Math.sqrt(dx*dx + dy*dy);
   
-  return (distance < (a.radius + b.radius));
+  return (distance < (r*2));
 };//ends: collides
 
 //player movement
@@ -84,29 +129,33 @@ const move = () => {
   
   //Keyboard controls
   if(keyDown[KEYBOARD.KEY_A]){
-    x -= nSpeed;
+    x -= users[name].speed;
+    console.log('x: '+x);
   }
   if(keyDown[KEYBOARD.KEY_D]){
-    x += nSpeed;
+    x += users[name].speed;
   }
   if(keyDown[KEYBOARD.KEY_W]){
-    y -= nSpeed;
+    y -= users[name].speed;
   }
   if(keyDown[KEYBOARD.KEY_S]){
-    y += nSpeed;
+    y += users[name].speed;
   }
   
-  //check distance from center of map
-  let dx = x - 250;
-  let dy = y - 250;
+  //check distance from center of map (at 500,500)
+  let dx = x - 500;
+  let dy = y - 500;
   let dFromCenter = Math.sqrt(dx*dx + dy*dy);
-  //movement only updates if the player is within the map
-  if(dFromCenter < (250 - r)){
-    users[name].x = x;
-    users[name].y = y
-    
-    //console.dir(users);
-    socket.emit('move',{ name: name, x: users[name].x, y: users[name].y, moveTime: time});
+  //movement only updates if the player will be within the map
+  if(dFromCenter < (395 - r)){
+    //once tagged a player cannot move for 3 seconds
+    if((time - users[name].timeTagged) > 3000) {
+      users[name].x = x;
+      users[name].y = y
+      
+      //console.dir(users);
+      socket.emit('move',{ name: name, x: x, y: y, moveTime: time});
+    }
   }
 }; //ends: move
 
@@ -116,44 +165,67 @@ const setupSocket = () => {
   socket.on('otherMove', (data) => {
     console.log('movements received');
     users = data;
-    draw();
+    //console.dir(data);
   });
   
   socket.on('newPlayer', (data) => {
     console.log('player received');
     users = data;
-    draw();
+  });
+  
+  socket.on('itQuit', (data) => {
+    console.log('forced it change');
+    users = data;
+    itCTime = new Date().getTime();
   });
 };//ends: setupSocket
 
 $(window).load(() => {
   let time = new Date().getTime();
-    socket = io.connect();//connect the socket
-    //get and set canvas
-      canvas = document.querySelector("#myCanvas");
-      ctx = canvas.getContext("2d");
-      setCanvasSize();
-    
-    //load background image
-    img = new Image();
-    img.src = '/img/background_v1.png';
-    img.onload = function(){
-      ctx.drawImage(img,0,0);
-      console.log("image loaded");
-    };
-    
-    //event listeners
-    setupSocket();//socket events
-    window.addEventListener('keypress',function(e){ //keypresses
-      console.log('keydown');
-      keyDown[e.keyCode] = true;
-      move();
-    });
-    window.addEventListener('keyup',function(e){ //keyreleasses
-      keyDown[e.keyCode] = false;
-      keyPrev = e.keyCode;
-    });
-    
-    //send my data to the server
-    socket.emit('join', { name: name, x: 100.0, y: 100.0, moveTime: time });
-})
+  //connect the socket so it disconnects when page unloads
+  socket = io.connect();
+  //get and set canvas
+    //hidden canvas
+  hCanvas = document.querySelector("#hCanvas");
+  hCanvas.width = 1000;
+  hCanvas.height = 1000;
+  hctx = hCanvas.getContext("2d");
+  canvas = document.querySelector("#mainCanvas");
+  ctx = canvas.getContext("2d");
+  
+  //load background image
+  img = new Image();
+  img.src = 'assets/img/background_v2.png';
+  img.onload = function(){
+    hctx.drawImage(img,0,0);
+    console.log("image loaded");
+  };
+  
+  //event listeners
+  setupSocket();//socket events
+  window.addEventListener('keypress',function(e){ //keypresses
+    console.log('keydown');
+    keyDown[e.code] = true;
+    console.log(e.code);
+    console.dir(keyDown);
+    move();
+  });
+  window.addEventListener('keyup',function(e){ //keyreleasses
+    keyDown[e.code] = false;
+    keyPrev = e.code;
+  });
+  window.addEventListener('beforeunload',function(e){ //before page unloads
+    socket.emit('leaving',{ name: name });
+  });
+  
+  //get a random position and color
+  let sx = 300.0 + Math.floor(Math.random() * ((700 - 300) + 1));
+  let sy = 300.0 + Math.floor(Math.random() * ((700 - 300) + 1));
+  let c = "hsl("+ 300 * Math.random() +",50%,50%)";
+  
+  //send my data to the server
+  socket.emit('join', { name: name, x: sx, y: sy, color: c, moveTime: time, it: false, timeTagged: 0, speed: 0.5});
+  
+  //draw approx 60 times a second
+  setInterval(draw,17);
+}) //ends: onLoad
